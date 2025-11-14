@@ -1,0 +1,180 @@
+================================================================================
+         AR Hand Tracking - Windows 编译使用指南
+================================================================================
+
+问题：脚本找不到 gradlew.bat？
+解决方案：请按照以下步骤操作
+
+================================================================================
+方法一：复制脚本到正确位置（推荐）
+================================================================================
+
+1. 找到 gradlew.bat 文件的位置：
+   mediapipe\mediapipe\examples\android\solutions\gradlew.bat
+
+2. 将所有 .bat 脚本复制到该目录：
+   复制这些文件：
+   - build_ar_hand_tracking.bat
+   - quick_install.bat
+   - view_logs.bat
+   - check_device.bat
+   - uninstall_app.bat
+
+   到这个目录：
+   mediapipe\mediapipe\examples\android\solutions\
+
+3. 进入 solutions 目录运行：
+   cd C:\Users\Temp\AndroidStudioProjects\mediapipe\mediapipe\examples\android\solutions
+   build_ar_hand_tracking.bat
+
+================================================================================
+方法二：使用 Android Studio（最简单）⭐推荐
+================================================================================
+
+1. 打开 Android Studio
+
+2. 选择 File → Open
+
+3. 选择这个目录：
+   mediapipe\mediapipe\examples\android\solutions\ar_hand_tracking
+
+4. 等待 Gradle 同步完成
+
+5. 连接 Android 设备
+
+6. 点击工具栏的绿色 ▶ 运行按钮
+
+就这么简单！Android Studio 会自动处理所有编译和安装步骤。
+
+================================================================================
+方法三：命令行手动编译
+================================================================================
+
+1. 打开 PowerShell 或 CMD
+
+2. 进入 solutions 目录：
+   cd C:\Users\Temp\AndroidStudioProjects\mediapipe\mediapipe\examples\android\solutions
+
+3. 运行 Gradle 命令：
+   .\gradlew.bat :ar_hand_tracking:clean
+   .\gradlew.bat :ar_hand_tracking:assembleDebug
+   .\gradlew.bat :ar_hand_tracking:installDebug
+
+4. 启动应用（可选）：
+   adb shell am start -n com.google.mediapipe.apps.arhandtracking/.MainActivity
+
+================================================================================
+快速命令参考
+================================================================================
+
+清理构建：
+  gradlew.bat :ar_hand_tracking:clean
+
+编译 APK：
+  gradlew.bat :ar_hand_tracking:assembleDebug
+
+安装到设备：
+  gradlew.bat :ar_hand_tracking:installDebug
+
+一键编译安装：
+  gradlew.bat :ar_hand_tracking:installDebug
+
+查看日志：
+  adb logcat | findstr "MainActivity"
+
+检查设备：
+  adb devices
+
+卸载应用：
+  adb uninstall com.google.mediapipe.apps.arhandtracking
+
+================================================================================
+目录结构说明
+================================================================================
+
+你的项目结构应该是这样的：
+
+C:\Users\Temp\AndroidStudioProjects\mediapipe\
+├── mediapipe\
+│   └── examples\
+│       └── android\
+│           └── solutions\              ← gradlew.bat 在这里！
+│               ├── gradlew.bat         ← Gradle 包装器
+│               ├── gradlew             ← Linux 版本
+│               ├── build.gradle        ← 主构建文件
+│               └── ar_hand_tracking\   ← 我们的应用
+│                   ├── build.gradle
+│                   ├── src\
+│                   └── README.md
+└── build_ar_hand_tracking.bat          ← 脚本需要移到 solutions 目录
+
+================================================================================
+故障排查
+================================================================================
+
+问题 1: "gradlew.bat 不存在"
+→ 确认你在正确的目录（solutions 目录）
+→ 或者将脚本复制到 solutions 目录
+
+问题 2: "adb 未找到"
+→ 打开 Android Studio（会自动配置 adb）
+→ 或手动添加到 PATH:
+  %LOCALAPPDATA%\Android\Sdk\platform-tools
+
+问题 3: "没有检测到设备"
+→ 启用 USB 调试（设置 → 开发者选项）
+→ 允许 USB 调试授权
+→ 尝试重新插拔 USB 线
+
+问题 4: "编译失败"
+→ 首次需要下载依赖，请等待
+→ 检查网络连接
+→ 在 Android Studio 中打开项目让它自动配置
+
+问题 5: "安装失败"
+→ 先卸载旧版本: adb uninstall com.google.mediapipe.apps.arhandtracking
+→ 检查设备存储空间
+→ 重新运行安装命令
+
+================================================================================
+推荐工作流程
+================================================================================
+
+【首次使用】
+1. 用 Android Studio 打开 ar_hand_tracking 文件夹
+2. 等待 Gradle 同步
+3. 点击运行按钮 ▶
+
+【日常开发】
+方式 A - 使用 Android Studio（推荐）
+  → 直接在 IDE 中点运行
+
+方式 B - 使用命令行（快速）
+  → 进入 solutions 目录
+  → 运行: gradlew.bat :ar_hand_tracking:installDebug
+
+================================================================================
+APK 输出位置
+================================================================================
+
+编译成功后，APK 文件在：
+mediapipe\examples\android\solutions\ar_hand_tracking\build\outputs\apk\debug\ar_hand_tracking-debug.apk
+
+可以直接复制这个文件安装到其他设备。
+
+================================================================================
+获取帮助
+================================================================================
+
+1. 查看详细文档：
+   - mediapipe\examples\android\solutions\ar_hand_tracking\README.md
+   - BUILD_SCRIPTS_README.md
+
+2. Android Studio 日志：
+   View → Tool Windows → Build
+   View → Tool Windows → Logcat
+
+3. 命令行日志：
+   查看终端输出的错误信息
+
+================================================================================
