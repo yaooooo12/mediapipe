@@ -16,9 +16,12 @@ package com.google.mediapipe.examples.arhandtracking;
 
 import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.util.Log;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageButton;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
@@ -43,14 +46,16 @@ public class MainActivity extends AppCompatActivity {
 
   private CameraInput cameraInput;
   private SolutionGlSurfaceView<HandsResult> glSurfaceView;
+  private ARHandTrackingRenderer renderer;
 
   // Track current camera facing
   private CameraInput.CameraFacing currentCameraFacing = CameraInput.CameraFacing.FRONT;
   private boolean isCameraRunning = false;
-  
+
   // UI components
   private Button startStopButton;
   private ImageButton switchCameraButton;
+  private EditText pointsPerNailInput;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -102,7 +107,8 @@ public class MainActivity extends AppCompatActivity {
     // Initializes a new Gl surface view with our custom AR renderer.
     glSurfaceView =
         new SolutionGlSurfaceView<>(this, hands.getGlContext(), hands.getGlMajorVersion());
-    glSurfaceView.setSolutionResultRenderer(new ARHandTrackingRenderer());
+    renderer = new ARHandTrackingRenderer();
+    glSurfaceView.setSolutionResultRenderer(renderer);
     glSurfaceView.setRenderInputImage(true);
 
     hands.setResultListener(
@@ -113,10 +119,11 @@ public class MainActivity extends AppCompatActivity {
         });
   }
 
-  /** Sets up button click listeners. */
+  /** Sets up button click listeners and input handling. */
   private void setupButtons() {
     startStopButton = findViewById(R.id.button_start_camera);
     switchCameraButton = findViewById(R.id.button_switch_camera);
+    pointsPerNailInput = findViewById(R.id.edit_points_per_nail);
 
     startStopButton.setOnClickListener(
         v -> {
@@ -133,6 +140,31 @@ public class MainActivity extends AppCompatActivity {
             switchCamera();
           }
         });
+
+    // Handle points per nail input changes
+    pointsPerNailInput.addTextChangedListener(new TextWatcher() {
+      @Override
+      public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+
+      @Override
+      public void onTextChanged(CharSequence s, int start, int before, int count) {}
+
+      @Override
+      public void afterTextChanged(Editable s) {
+        try {
+          String input = s.toString();
+          if (!input.isEmpty()) {
+            int points = Integer.parseInt(input);
+            if (points > 0 && points <= 200) {
+              renderer.setPointsPerNail(points);
+              Log.i(TAG, "Points per nail set to: " + points);
+            }
+          }
+        } catch (NumberFormatException e) {
+          Log.w(TAG, "Invalid points per nail input");
+        }
+      }
+    });
   }
 
   /** Starts camera mode and displays the view. */

@@ -60,6 +60,9 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
   private static final float FINGERNAIL_LINE_WIDTH = 5.0f; // Outline thickness
   private static final float FINGERNAIL_POINT_SIZE = 8.0f; // Point size for edge dots
 
+  // Configurable points per nail
+  private int pointsPerNail = 60;
+
   private static final String VERTEX_SHADER =
       "uniform mat4 uProjectionMatrix;\n"
           + "attribute vec4 vPosition;\n"
@@ -180,6 +183,12 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
     return textureIds[0];
   }
 
+  public void setPointsPerNail(int points) {
+    if (points > 0 && points <= 200) {
+      this.pointsPerNail = points;
+    }
+  }
+
   @Override
   public void renderResult(HandsResult result, float[] projectionMatrix) {
     if (result == null) {
@@ -187,28 +196,12 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
     }
     GLES20.glUseProgram(program);
     GLES20.glUniformMatrix4fv(projectionMatrixHandle, 1, false, projectionMatrix, 0);
-    GLES20.glLineWidth(CONNECTION_THICKNESS);
 
     int numHands = result.multiHandLandmarks().size();
     for (int i = 0; i < numHands; ++i) {
-      boolean isLeftHand = result.multiHandedness().get(i).getLabel().equals("Left");
       List<NormalizedLandmark> landmarks = result.multiHandLandmarks().get(i).getLandmarkList();
 
-      drawConnections(
-          landmarks,
-          isLeftHand ? LEFT_HAND_CONNECTION_COLOR : RIGHT_HAND_CONNECTION_COLOR);
-
-      for (NormalizedLandmark landmark : landmarks) {
-        drawCircle(
-            landmark.getX(),
-            landmark.getY(),
-            isLeftHand ? LEFT_HAND_LANDMARK_COLOR : RIGHT_HAND_LANDMARK_COLOR);
-      }
-
-      // Draw arrows and labels for finger tips
-      drawFingerTipAnnotations(landmarks, projectionMatrix);
-
-      // Draw fingernail outlines
+      // Only draw fingernail outlines with red dots
       drawFingernails(landmarks);
     }
   }
@@ -380,11 +373,10 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
     float nailEndX = dip.getX() + fingerDirX * fingerLength * nailEndRatio;
     float nailEndY = dip.getY() + fingerDirY * fingerLength * nailEndRatio;
 
-    // Use many more points for precise edge detection
-    int perimeterPoints = 60; // High density points around nail edge
-    float[] vertices = new float[perimeterPoints * 3];
+    // Use configurable number of points for edge detection
+    int perimeterPoints = pointsPerNail;
 
-    int idx = 0;
+    // Draw each point as a small filled circle
     for (int i = 0; i < perimeterPoints; i++) {
       float t = (float) i / perimeterPoints;
       float x, y;
@@ -420,9 +412,30 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
         y = startY + (y - startY) * sideT;
       }
 
-      vertices[idx++] = x;
-      vertices[idx++] = y;
-      vertices[idx++] = 0;
+      // Draw a small filled circle at this point
+      drawDot(x, y, FINGERNAIL_COLOR);
+    }
+  }
+
+  private void drawDot(float x, float y, float[] colorArray) {
+    GLES20.glUniform4fv(colorHandle, 1, colorArray, 0);
+
+    // Draw a small filled circle to represent a dot
+    int dotSegments = 8; // Enough for a smooth small circle
+    float dotRadius = 0.003f; // Small radius for dot
+    int vertexCount = dotSegments + 2;
+    float[] vertices = new float[vertexCount * 3];
+
+    vertices[0] = x;
+    vertices[1] = y;
+    vertices[2] = 0;
+
+    for (int i = 1; i < vertexCount; i++) {
+      float angle = 2.0f * i * (float) Math.PI / dotSegments;
+      int currentIndex = 3 * i;
+      vertices[currentIndex] = x + (float) (dotRadius * Math.cos(angle));
+      vertices[currentIndex + 1] = y + (float) (dotRadius * Math.sin(angle));
+      vertices[currentIndex + 2] = 0;
     }
 
     FloatBuffer vertexBuffer =
@@ -432,11 +445,9 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
             .put(vertices);
     vertexBuffer.position(0);
 
-    // Draw as dense line loop for precise edge visualization
     GLES20.glEnableVertexAttribArray(positionHandle);
     GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-    GLES20.glLineWidth(FINGERNAIL_LINE_WIDTH);
-    GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, perimeterPoints);
+    GLES20.glDrawArrays(GLES20.GL_TRIANGLE_FAN, 0, vertexCount);
   }
 
   private void drawConnections(List<NormalizedLandmark> handLandmarkList, float[] colorArray) {
