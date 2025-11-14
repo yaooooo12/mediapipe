@@ -53,6 +53,12 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
   private static final float ARROW_LENGTH = 0.08f;
   private static final float ARROW_WIDTH = 0.03f;
 
+  // Fingernail detection colors and sizes
+  private static final float[] FINGERNAIL_COLOR = new float[] {1f, 0f, 0f, 1f}; // Red
+  private static final float FINGERNAIL_WIDTH = 0.015f;  // Nail width
+  private static final float FINGERNAIL_HEIGHT = 0.02f;  // Nail height
+  private static final float FINGERNAIL_LINE_WIDTH = 5.0f; // Outline thickness
+
   private static final String VERTEX_SHADER =
       "uniform mat4 uProjectionMatrix;\n"
           + "attribute vec4 vPosition;\n"
@@ -200,6 +206,9 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
 
       // Draw arrows and labels for finger tips
       drawFingerTipAnnotations(landmarks, projectionMatrix);
+
+      // Draw fingernail outlines
+      drawFingernails(landmarks);
     }
   }
 
@@ -314,6 +323,58 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
 
     GLES20.glDisable(GLES20.GL_BLEND);
     GLES20.glUseProgram(program);
+  }
+
+  private void drawFingernails(List<NormalizedLandmark> landmarks) {
+    // Define fingernail positions using DIP (distal interphalangeal) and TIP landmarks
+    // For thumb, use IP (interphalangeal) instead of DIP
+    int[][] fingerNailLandmarks = {
+        {HandLandmark.THUMB_IP, HandLandmark.THUMB_TIP},           // Thumb: IP to TIP
+        {HandLandmark.INDEX_FINGER_DIP, HandLandmark.INDEX_FINGER_TIP},  // Index: DIP to TIP
+        {HandLandmark.MIDDLE_FINGER_DIP, HandLandmark.MIDDLE_FINGER_TIP}, // Middle: DIP to TIP
+        {HandLandmark.RING_FINGER_DIP, HandLandmark.RING_FINGER_TIP},    // Ring: DIP to TIP
+        {HandLandmark.PINKY_DIP, HandLandmark.PINKY_TIP}           // Pinky: DIP to TIP
+    };
+
+    GLES20.glLineWidth(FINGERNAIL_LINE_WIDTH);
+    GLES20.glUniform4fv(colorHandle, 1, FINGERNAIL_COLOR, 0);
+
+    for (int[] nailLandmarks : fingerNailLandmarks) {
+      NormalizedLandmark dip = landmarks.get(nailLandmarks[0]);
+      NormalizedLandmark tip = landmarks.get(nailLandmarks[1]);
+
+      // Calculate center position between DIP and TIP
+      float centerX = (dip.getX() + tip.getX()) / 2;
+      float centerY = (dip.getY() + tip.getY()) / 2;
+
+      // Draw oval outline around the fingernail
+      drawOval(centerX, centerY, FINGERNAIL_WIDTH, FINGERNAIL_HEIGHT);
+    }
+
+    // Reset line width
+    GLES20.glLineWidth(CONNECTION_THICKNESS);
+  }
+
+  private void drawOval(float centerX, float centerY, float width, float height) {
+    int segments = 30; // Number of segments for the oval
+    float[] vertices = new float[segments * 2];
+
+    for (int i = 0; i < segments; i++) {
+      float angle = 2.0f * i * (float) Math.PI / segments;
+      vertices[i * 2] = centerX + (width * (float) Math.cos(angle));
+      vertices[i * 2 + 1] = centerY + (height * (float) Math.sin(angle));
+    }
+
+    FloatBuffer vertexBuffer =
+        ByteBuffer.allocateDirect(vertices.length * 4)
+            .order(ByteOrder.nativeOrder())
+            .asFloatBuffer()
+            .put(vertices);
+    vertexBuffer.position(0);
+
+    GLES20.glEnableVertexAttribArray(positionHandle);
+    GLES20.glVertexAttribPointer(positionHandle, 2, GLES20.GL_FLOAT, false, 0, vertexBuffer);
+    GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, segments);
   }
 
   private void drawConnections(List<NormalizedLandmark> handLandmarkList, float[] colorArray) {
