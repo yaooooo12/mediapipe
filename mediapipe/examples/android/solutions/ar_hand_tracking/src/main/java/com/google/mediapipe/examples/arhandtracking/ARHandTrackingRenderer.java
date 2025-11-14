@@ -432,18 +432,9 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
             .put(vertices);
     vertexBuffer.position(0);
 
-    // Draw as dense points for precise edge visualization
-    GLES20.glEnable(GLES20.GL_PROGRAM_POINT_SIZE);
+    // Draw as dense line loop for precise edge visualization
     GLES20.glEnableVertexAttribArray(positionHandle);
     GLES20.glVertexAttribPointer(positionHandle, 3, GLES20.GL_FLOAT, false, 0, vertexBuffer);
-
-    // Draw points
-    float originalPointSize = 1.0f;
-    GLES20.glGetFloatv(GLES20.GL_POINT_SIZE, new float[]{originalPointSize}, 0);
-    GLES20.glLineWidth(FINGERNAIL_POINT_SIZE);
-    GLES20.glDrawArrays(GLES20.GL_POINTS, 0, perimeterPoints);
-
-    // Also draw as line loop for continuous edge
     GLES20.glLineWidth(FINGERNAIL_LINE_WIDTH);
     GLES20.glDrawArrays(GLES20.GL_LINE_LOOP, 0, perimeterPoints);
   }
