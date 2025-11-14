@@ -385,8 +385,8 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
 
     // Define nail outline points
     // The nail has a rounded top and straight sides
-    int arcSegments = 10; // Segments for the rounded top
-    int totalPoints = arcSegments + 4; // Arc + 2 sides + 2 base corners
+    int arcSegments = 12; // Segments for the rounded top arc
+    int totalPoints = arcSegments + 3; // Arc points + 2 base corners + 1 to close
     float[] vertices = new float[totalPoints * 2];
     int idx = 0;
 
@@ -394,25 +394,20 @@ public class ARHandTrackingRenderer implements ResultGlRenderer<HandsResult> {
     vertices[idx++] = nailStartX - perpX * fingerWidth * 0.4f;
     vertices[idx++] = nailStartY - perpY * fingerWidth * 0.4f;
 
-    // Left side of nail
-    vertices[idx++] = nailEndX - perpX * fingerWidth * 0.35f;
-    vertices[idx++] = nailEndY - perpY * fingerWidth * 0.35f;
-
     // Rounded top of nail (arc from left to right)
+    // Start from left side and go around to right side
     for (int i = 0; i <= arcSegments; i++) {
-      float angle = (float) Math.PI * i / arcSegments; // From PI to 0 (left to right)
+      float t = (float) i / arcSegments;
+      // Angle goes from PI (left) to 0 (right)
+      float angle = (float) Math.PI * (1.0f - t);
       float arcX = nailEndX + (float) Math.cos(angle) * perpX * fingerWidth * 0.35f;
       float arcY = nailEndY + (float) Math.cos(angle) * perpY * fingerWidth * 0.35f;
       // Offset forward for rounded shape
-      arcX += fingerDirX * fingerWidth * 0.2f * (float) Math.sin(angle);
-      arcY += fingerDirY * fingerWidth * 0.2f * (float) Math.sin(angle);
+      arcX += fingerDirX * fingerWidth * 0.15f * (float) Math.sin(angle);
+      arcY += fingerDirY * fingerWidth * 0.15f * (float) Math.sin(angle);
       vertices[idx++] = arcX;
       vertices[idx++] = arcY;
     }
-
-    // Right side of nail
-    vertices[idx++] = nailEndX + perpX * fingerWidth * 0.35f;
-    vertices[idx++] = nailEndY + perpY * fingerWidth * 0.35f;
 
     // Bottom-right corner of nail
     vertices[idx++] = nailStartX + perpX * fingerWidth * 0.4f;
