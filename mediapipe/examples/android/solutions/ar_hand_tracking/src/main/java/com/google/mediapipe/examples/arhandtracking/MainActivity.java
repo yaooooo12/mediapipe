@@ -20,6 +20,7 @@ import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageButton;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
 import com.google.mediapipe.solutioncore.CameraInput;
 import com.google.mediapipe.solutioncore.SolutionGlSurfaceView;
@@ -31,7 +32,7 @@ import com.google.mediapipe.solutions.hands.HandsResult;
 /**
  * Main activity of AR Hand Tracking app.
  * This app uses the camera to track hands in real-time and labels finger tips with numbers 1-5.
- * Supports switching between front and back cameras.
+ * Supports switching between front and back cameras and start/stop camera control.
  */
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
@@ -46,6 +47,10 @@ public class MainActivity extends AppCompatActivity {
   // Track current camera facing
   private CameraInput.CameraFacing currentCameraFacing = CameraInput.CameraFacing.FRONT;
   private boolean isCameraRunning = false;
+  
+  // UI components
+  private Button startStopButton;
+  private ImageButton switchCameraButton;
 
   @Override
   protected void onCreate(Bundle savedInstanceState) {
@@ -110,12 +115,14 @@ public class MainActivity extends AppCompatActivity {
 
   /** Sets up button click listeners. */
   private void setupButtons() {
-    Button startCameraButton = findViewById(R.id.button_start_camera);
-    Button switchCameraButton = findViewById(R.id.button_switch_camera);
+    startStopButton = findViewById(R.id.button_start_camera);
+    switchCameraButton = findViewById(R.id.button_switch_camera);
 
-    startCameraButton.setOnClickListener(
+    startStopButton.setOnClickListener(
         v -> {
-          if (!isCameraRunning) {
+          if (isCameraRunning) {
+            stopCamera();
+          } else {
             startCameraMode();
           }
         });
@@ -131,6 +138,12 @@ public class MainActivity extends AppCompatActivity {
   /** Starts camera mode and displays the view. */
   private void startCameraMode() {
     isCameraRunning = true;
+    
+    // Update button text to "Stop Camera"
+    startStopButton.setText(R.string.stop_camera);
+    
+    // Enable switch camera button
+    switchCameraButton.setEnabled(true);
 
     // Updates the preview layout.
     FrameLayout frameLayout = findViewById(R.id.preview_display_layout);
@@ -141,6 +154,35 @@ public class MainActivity extends AppCompatActivity {
 
     // Start camera after the gl surface view is attached.
     glSurfaceView.post(this::startCamera);
+    
+    Log.i(TAG, "Camera started");
+  }
+
+  /** Stops the camera. */
+  private void stopCamera() {
+    isCameraRunning = false;
+    
+    // Update button text to "Start Camera"
+    startStopButton.setText(R.string.start_camera);
+    
+    // Disable switch camera button
+    switchCameraButton.setEnabled(false);
+
+    // Stop camera input
+    if (cameraInput != null) {
+      cameraInput.close();
+    }
+
+    // Hide the surface view
+    if (glSurfaceView != null) {
+      glSurfaceView.setVisibility(View.GONE);
+    }
+
+    // Clear the preview layout
+    FrameLayout frameLayout = findViewById(R.id.preview_display_layout);
+    frameLayout.removeAllViewsInLayout();
+    
+    Log.i(TAG, "Camera stopped");
   }
 
   /** Switches between front and back camera. */

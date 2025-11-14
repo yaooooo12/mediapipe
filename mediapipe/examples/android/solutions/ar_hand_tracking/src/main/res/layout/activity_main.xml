@@ -25,11 +25,16 @@
             android:layout_width="wrap_content"
             style="?android:attr/buttonBarButtonStyle" android:layout_height="wrap_content"
             android:text="@string/start_camera" />
-        <Button
+        <ImageButton
             android:id="@+id/button_switch_camera"
-            android:layout_width="wrap_content"
-            style="?android:attr/buttonBarButtonStyle" android:layout_height="wrap_content"
-            android:text="@string/switch_camera" />
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            style="?android:attr/buttonBarButtonStyle"
+            android:src="@drawable/ic_switch_camera"
+            android:contentDescription="@string/switch_camera_description"
+            android:background="?android:attr/selectableItemBackground"
+            android:scaleType="centerInside"
+            android:padding="12dp" />
     </LinearLayout>
     <FrameLayout
         android:id="@+id/preview_display_layout"
