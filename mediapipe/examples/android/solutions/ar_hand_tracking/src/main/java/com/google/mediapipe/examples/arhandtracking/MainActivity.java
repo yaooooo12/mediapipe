@@ -18,6 +18,7 @@ import android.os.Bundle;
 import androidx.appcompat.app.AppCompatActivity;
 import android.util.Log;
 import android.view.View;
+import android.widget.Button;
 import android.widget.FrameLayout;
 import com.google.mediapipe.formats.proto.LandmarkProto.NormalizedLandmark;
 import com.google.mediapipe.solutioncore.CameraInput;
@@ -30,6 +31,7 @@ import com.google.mediapipe.solutions.hands.HandsResult;
 /**
  * Main activity of AR Hand Tracking app.
  * This app uses the camera to track hands in real-time and labels finger tips with numbers 1-5.
+ * Supports switching between front and back cameras.
  */
 public class MainActivity extends AppCompatActivity {
   private static final String TAG = "MainActivity";
@@ -41,32 +43,43 @@ public class MainActivity extends AppCompatActivity {
   private CameraInput cameraInput;
   private SolutionGlSurfaceView<HandsResult> glSurfaceView;
 
+  // Track current camera facing
+  private CameraInput.CameraFacing currentCameraFacing = CameraInput.CameraFacing.FRONT;
+  private boolean isCameraRunning = false;
+
   @Override
   protected void onCreate(Bundle savedInstanceState) {
     super.onCreate(savedInstanceState);
     setContentView(R.layout.activity_main);
-    setupCameraMode();
+    setupHandsTracking();
+    setupButtons();
   }
 
   @Override
   protected void onResume() {
     super.onResume();
-    // Restarts the camera and the opengl surface rendering.
-    cameraInput = new CameraInput(this);
-    cameraInput.setNewFrameListener(textureFrame -> hands.send(textureFrame));
-    glSurfaceView.post(this::startCamera);
-    glSurfaceView.setVisibility(View.VISIBLE);
+    if (isCameraRunning && cameraInput != null && glSurfaceView != null) {
+      // Restarts the camera and the opengl surface rendering.
+      cameraInput = new CameraInput(this);
+      cameraInput.setNewFrameListener(textureFrame -> hands.send(textureFrame));
+      glSurfaceView.post(this::startCamera);
+      glSurfaceView.setVisibility(View.VISIBLE);
+    }
   }
 
   @Override
   protected void onPause() {
     super.onPause();
-    glSurfaceView.setVisibility(View.GONE);
-    cameraInput.close();
+    if (cameraInput != null) {
+      cameraInput.close();
+    }
+    if (glSurfaceView != null) {
+      glSurfaceView.setVisibility(View.GONE);
+    }
   }
 
-  /** Sets up the AR hand tracking in camera mode. */
-  private void setupCameraMode() {
+  /** Sets up the MediaPipe Hands tracking. */
+  private void setupHandsTracking() {
     // Initializes MediaPipe Hands solution instance in streaming mode.
     hands =
         new Hands(
@@ -93,9 +106,31 @@ public class MainActivity extends AppCompatActivity {
           glSurfaceView.setRenderData(handsResult);
           glSurfaceView.requestRender();
         });
+  }
 
-    // Start camera after the gl surface view is attached.
-    glSurfaceView.post(this::startCamera);
+  /** Sets up button click listeners. */
+  private void setupButtons() {
+    Button startCameraButton = findViewById(R.id.button_start_camera);
+    Button switchCameraButton = findViewById(R.id.button_switch_camera);
+
+    startCameraButton.setOnClickListener(
+        v -> {
+          if (!isCameraRunning) {
+            startCameraMode();
+          }
+        });
+
+    switchCameraButton.setOnClickListener(
+        v -> {
+          if (isCameraRunning) {
+            switchCamera();
+          }
+        });
+  }
+
+  /** Starts camera mode and displays the view. */
+  private void startCameraMode() {
+    isCameraRunning = true;
 
     // Updates the preview layout.
     FrameLayout frameLayout = findViewById(R.id.preview_display_layout);
@@ -103,13 +138,37 @@ public class MainActivity extends AppCompatActivity {
     frameLayout.addView(glSurfaceView);
     glSurfaceView.setVisibility(View.VISIBLE);
     frameLayout.requestLayout();
+
+    // Start camera after the gl surface view is attached.
+    glSurfaceView.post(this::startCamera);
+  }
+
+  /** Switches between front and back camera. */
+  private void switchCamera() {
+    // Toggle camera facing
+    if (currentCameraFacing == CameraInput.CameraFacing.FRONT) {
+      currentCameraFacing = CameraInput.CameraFacing.BACK;
+      Log.i(TAG, "Switched to back camera");
+    } else {
+      currentCameraFacing = CameraInput.CameraFacing.FRONT;
+      Log.i(TAG, "Switched to front camera");
+    }
+
+    // Restart camera with new facing
+    if (cameraInput != null) {
+      cameraInput.close();
+    }
+
+    cameraInput = new CameraInput(this);
+    cameraInput.setNewFrameListener(textureFrame -> hands.send(textureFrame));
+    glSurfaceView.post(this::startCamera);
   }
 
   private void startCamera() {
     cameraInput.start(
         this,
         hands.getGlContext(),
-        CameraInput.CameraFacing.FRONT,
+        currentCameraFacing,
         glSurfaceView.getWidth(),
         glSurfaceView.getHeight());
   }
@@ -153,6 +212,9 @@ public class MainActivity extends AppCompatActivity {
     super.onDestroy();
     if (hands != null) {
       hands.close();
+    }
+    if (cameraInput != null) {
+      cameraInput.close();
     }
   }
 }

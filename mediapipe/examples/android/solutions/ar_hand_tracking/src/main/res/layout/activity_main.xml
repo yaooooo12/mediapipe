@@ -25,6 +25,11 @@
             android:layout_width="wrap_content"
             style="?android:attr/buttonBarButtonStyle" android:layout_height="wrap_content"
             android:text="@string/start_camera" />
+        <Button
+            android:id="@+id/button_switch_camera"
+            android:layout_width="wrap_content"
+            style="?android:attr/buttonBarButtonStyle" android:layout_height="wrap_content"
+            android:text="@string/switch_camera" />
     </LinearLayout>
     <FrameLayout
         android:id="@+id/preview_display_layout"
